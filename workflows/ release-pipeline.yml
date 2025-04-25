@@ -1,0 +1,33 @@
+name: Release Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v3
+
+    - name: 🧱 Build
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
+    - name: 🧪 Test
+      run: |
+        chmod +x test.sh
+        ./test.sh
+
+    - name: 📦 Zip Code
+      run: zip -r release.zip .
+
+    - name: 🚀 Deploy (optional)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        chmod +x deploy.sh
+        ./deploy.sh
