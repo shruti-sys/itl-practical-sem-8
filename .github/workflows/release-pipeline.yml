@@ -1,0 +1,47 @@
+name: Release Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      REMOTE_USER: ${{ secrets.REMOTE_USER }}
+      REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+      TARGET_DIR: ${{ secrets.TARGET_DIR }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v3
+
+    - name: 🧱 Build
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
+    - name: 🧪 Test
+      run: |
+        chmod +x test.sh
+        ./test.sh
+
+    - name: 📦 Zip Code
+      run: zip -r release.zip .
+
+    - name: 🚀 Deploy to Server
+      run: |
+        echo "$SSH_PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem
+
+        echo "🔐 Connecting to $REMOTE_USER@$REMOTE_HOST..."
+        scp -i private_key.pem -o StrictHostKeyChecking=no release.zip $REMOTE_USER@$REMOTE_HOST:$TARGET_DIR/
+
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+          cd $TARGET_DIR
+          unzip -o release.zip
+          echo "✅ Deployment successful!"
+        EOF
